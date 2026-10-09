@@ -1,5 +1,6 @@
 [tools]
 actionlint = "latest"
+golangci-lint = "2.14.0"
 go = "latest"
 "go:github.com/securego/gosec/v2/cmd/gosec" = "latest"
 "go:golang.org/x/vuln/cmd/govulncheck" = "latest"

@@ -2,23 +2,23 @@ amends "package://github.com/jdx/hk/releases/download/v2.5.0/hk@2.5.0#/Config.pk
 import "package://github.com/jdx/hk/releases/download/v2.5.0/hk@2.5.0#/Builtins.pkl"
 // Using a coding agent? See https://hk.jdx.dev/agents
 
-steps {
+local fast_checks = new Mapping<String, Step> {
     ["go-fmt"] = (Builtins.go_fmt) {
         glob = "**/*.go"
     }
     ["go-vet"] = (Builtins.go_vet) {
         glob = "**/*.go"
     }
+    ["go-lint"] = (Builtins.golangci_lint) {
+        glob = "**/*.go"
+    }
+    ["go-test"] {
+        glob = "**/*.go"
+        check = "go test ./..."
+    }
     ["go-mod-tidy"] = (Builtins.gomod_tidy) {
         glob = List("**/*.go", "**/go.mod", "**/go.sum")
     }
-    ["go-sec"] = (Builtins.go_sec) {
-        glob = "**/*.go"
-    }
-    ["go-vuln-check"] = (Builtins.go_vuln_check) {
-        glob = "**/*.go"
-    }
-
     ["actionlint"] = (Builtins.actionlint) {
         glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
     }
@@ -47,7 +47,21 @@ steps {
     }
 }
 
+local full_checks = (fast_checks) {
+    ["go-sec"] = (Builtins.go_sec) {
+        glob = "**/*.go"
+    }
+    ["go-vuln-check"] = (Builtins.go_vuln_check) {
+        glob = "**/*.go"
+    }
+}
+
+steps = fast_checks
+
 hooks {
+    ["pre-push"] {
+        steps = full_checks
+    }
     ["commit-msg"] {
         steps {
             ["conventional-commit"] = Builtins.check_conventional_commit
