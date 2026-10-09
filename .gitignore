@@ -1,0 +1,17 @@
+# Binaries for programs and plugins
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test and coverage artifacts
+*.test
+*.out
+coverage/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
