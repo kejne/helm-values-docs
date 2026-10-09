@@ -3,7 +3,54 @@ import "package://github.com/jdx/hk/releases/download/v2.5.0/hk@2.5.0#/Builtins.
 // Using a coding agent? See https://hk.jdx.dev/agents
 
 steps {
-    ["go-fmt"] = Builtins.go_fmt
-    ["go-vet"] = Builtins.go_vet
-    ["go-mod-tidy"] = Builtins.gomod_tidy
+    ["go-fmt"] = (Builtins.go_fmt) {
+        glob = "**/*.go"
+    }
+    ["go-vet"] = (Builtins.go_vet) {
+        glob = "**/*.go"
+    }
+    ["go-mod-tidy"] = (Builtins.gomod_tidy) {
+        glob = List("**/*.go", "**/go.mod", "**/go.sum")
+    }
+    ["go-sec"] = (Builtins.go_sec) {
+        glob = "**/*.go"
+    }
+    ["go-vuln-check"] = (Builtins.go_vuln_check) {
+        glob = "**/*.go"
+    }
+
+    ["actionlint"] = (Builtins.actionlint) {
+        glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+    }
+    ["pinact"] = (Builtins.pinact) {
+        glob = List(
+            ".github/workflows/*.yml",
+            ".github/workflows/*.yaml",
+            "action.yml",
+            "action.yaml",
+            "**/action.yml",
+            "**/action.yaml",
+        )
+        types = List("yaml")
+    }
+    ["zizmor"] = (Builtins.zizmor) {
+        glob = List(
+            ".github/workflows/*.yml",
+            ".github/workflows/*.yaml",
+            ".github/dependabot.yml",
+            ".github/dependabot.yaml",
+            "action.yml",
+            "action.yaml",
+            "**/action.yml",
+            "**/action.yaml",
+        )
+    }
+}
+
+hooks {
+    ["commit-msg"] {
+        steps {
+            ["conventional-commit"] = Builtins.check_conventional_commit
+        }
+    }
 }

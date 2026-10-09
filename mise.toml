@@ -1,3 +1,9 @@
 [tools]
+actionlint = "latest"
 go = "latest"
+"go:github.com/securego/gosec/v2/cmd/gosec" = "latest"
+"go:golang.org/x/vuln/cmd/govulncheck" = "latest"
 hk = "latest"
+pinact = "latest"
+shellcheck = "latest"
+zizmor = "latest"
