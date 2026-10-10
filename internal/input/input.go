@@ -13,7 +13,7 @@ import (
 func LoadValues(paths []string) (map[string]any, error) {
 	result := make(map[string]any)
 	for _, path := range paths {
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) // #nosec G304 -- paths are explicitly supplied by the caller.
 		if err != nil {
 			return nil, fmt.Errorf("read values %q: %w", path, err)
 		}

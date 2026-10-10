@@ -25,7 +25,7 @@ func RenderFiles(schemaPath string, valuesPaths []string) ([]byte, error) {
 
 // RenderFilesWithTemplate renders Markdown and optionally composes it with a template.
 func RenderFilesWithTemplate(schemaPath string, valuesPaths []string, templatePath string) ([]byte, error) {
-	schemaData, err := os.ReadFile(schemaPath)
+	schemaData, err := os.ReadFile(schemaPath) // #nosec G304 -- paths are explicitly supplied by the caller.
 	if err != nil {
 		return nil, fmt.Errorf("read schema %q: %w", schemaPath, err)
 	}
@@ -48,7 +48,7 @@ func RenderFilesWithTemplate(schemaPath string, valuesPaths []string, templatePa
 }
 
 func compose(api []byte, templatePath string) ([]byte, error) {
-	templateData, err := os.ReadFile(templatePath)
+	templateData, err := os.ReadFile(templatePath) // #nosec G304 -- paths are explicitly supplied by the caller.
 	if err != nil {
 		return nil, fmt.Errorf("read template %q: %w", templatePath, err)
 	}
@@ -80,7 +80,7 @@ func CheckFilesWithTemplate(schemaPath string, valuesPaths []string, outputPath,
 
 // CheckRendered compares already-rendered bytes with an output file.
 func CheckRendered(want []byte, outputPath string) (bool, error) {
-	have, err := os.ReadFile(outputPath)
+	have, err := os.ReadFile(outputPath) // #nosec G304 -- paths are explicitly supplied by the caller.
 	if err != nil {
 		return false, fmt.Errorf("read output %q: %w", outputPath, err)
 	}
@@ -106,9 +106,6 @@ func WriteAtomic(path string, data []byte) error {
 	}
 	if err := file.Close(); err != nil {
 		return fmt.Errorf("close output %q: %w", path, err)
-	}
-	if err := os.Chmod(temporary, 0o644); err != nil {
-		return fmt.Errorf("set output permissions %q: %w", path, err)
 	}
 	if err := os.Rename(temporary, path); err != nil {
 		return fmt.Errorf("replace output %q: %w", path, err)

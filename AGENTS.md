@@ -17,7 +17,14 @@ hk check
 Other scopes:
 
 - `hk check --all` runs the inexpensive checks against the whole repository.
-- `hk run pre-push` runs the full quality suite for the push range, including `gosec` and `govulncheck`.
+- `hk run pre-push` runs the full quality suite for the push range, including the long-running `gosec` and `govulncheck` checks.
+- Before declaring work ready or pushing, run the complete suite in a mise-managed shell:
+
+  ```sh
+  mise exec -- hk run pre-push
+  ```
+
+  A normal `hk run pre-push` is equivalent after mise has activated the pinned toolchain.
 - Review any files changed by a fixer before committing.
 
 The pre-push suite intentionally keeps the slower/network-dependent security checks out of the normal agent loop. Run it before pushing or when changes affect security-sensitive code. Do not bypass a failing check; fix the cause or explain an intentional exception explicitly.
