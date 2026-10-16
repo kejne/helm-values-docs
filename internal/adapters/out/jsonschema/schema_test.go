@@ -1,11 +1,13 @@
-package schema
+package jsonschema_test
 
 import (
 	"testing"
+
+	"github.com/kejne/helm-values-docs/internal/adapters/out/jsonschema"
 )
 
 func TestParseSchema(t *testing.T) {
-	model, err := Parse([]byte(`{
+	model, err := jsonschema.Parse([]byte(`{
 		"type":"object",
 		"required":["replicas"],
 		"properties":{
@@ -29,13 +31,49 @@ func TestParseSchema(t *testing.T) {
 }
 
 func TestParseRejectsInvalidSchema(t *testing.T) {
-	if _, err := Parse([]byte(`{"type":`)); err == nil {
+	if _, err := jsonschema.Parse([]byte(`{"type":`)); err == nil {
 		t.Fatal("Parse accepted malformed JSON")
 	}
 }
 
+func TestParsePreservesOptionalSchemaDetails(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{
+		"description":"A chart setting",
+		"enum":["small","large"],
+		"examples":["small"],
+		"items":{"type":"string","description":"An entry"}
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if model.Description != "A chart setting" || len(model.Enum) != 2 || model.Enum[0] != "small" || len(model.Examples) != 1 || model.Examples[0] != "small" {
+		t.Fatalf("optional schema details were not preserved: %#v", model)
+	}
+	if model.Items == nil || len(model.Items.Types) != 1 || model.Items.Types[0] != "string" || model.Items.Description != "An entry" {
+		t.Fatalf("item schema was not preserved: %#v", model.Items)
+	}
+}
+
+func TestParseRejectsInvalidOptionalSchemaDetails(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		data string
+	}{
+		{name: "description must be a string", data: `{"description":false}`},
+		{name: "enum must be an array", data: `{"enum":"small"}`},
+		{name: "examples must be an array", data: `{"examples":{}}`},
+		{name: "items must be an object", data: `{"items":[]}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := jsonschema.Parse([]byte(tc.data)); err == nil {
+				t.Fatalf("Parse(%s) accepted invalid input", tc.data)
+			}
+		})
+	}
+}
+
 func TestParseReportsEveryUnsupportedKeyword(t *testing.T) {
-	model, err := Parse([]byte(`{
+	model, err := jsonschema.Parse([]byte(`{
 		"additionalProperties":false,
 		"patternProperties":{"^x-":{"type":"string"}},
 		"minProperties":1,

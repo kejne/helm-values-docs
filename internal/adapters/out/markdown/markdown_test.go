@@ -1,16 +1,16 @@
-package markdown
+package markdown_test
 
 import (
+	"github.com/kejne/helm-values-docs/internal/adapters/out/jsonschema"
+	"github.com/kejne/helm-values-docs/internal/adapters/out/markdown"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
-
-	"github.com/kejne/helm-values-docs/internal/schema"
 )
 
 func TestRenderGolden(t *testing.T) {
-	model, err := schema.Parse([]byte(`{
+	model, err := jsonschema.Parse([]byte(`{
 		"type":"object",
 		"required":["replicas"],
 		"properties":{
@@ -22,7 +22,7 @@ func TestRenderGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := Render(model, map[string]any{
+	got, err := markdown.Render(model, map[string]any{
 		"image":    map[string]any{"tag": "stable"},
 		"replicas": 3,
 	})
@@ -33,11 +33,11 @@ func TestRenderGolden(t *testing.T) {
 }
 
 func TestRenderLooksUpPropertyNamesContainingDots(t *testing.T) {
-	model, err := schema.Parse([]byte(`{"properties":{"a.b":{"type":"string"}}}`))
+	model, err := jsonschema.Parse([]byte(`{"properties":{"a.b":{"type":"string"}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := Render(model, map[string]any{"a.b": "value"})
+	got, err := markdown.Render(model, map[string]any{"a.b": "value"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,11 +47,11 @@ func TestRenderLooksUpPropertyNamesContainingDots(t *testing.T) {
 }
 
 func TestRenderUsesRootDefaultAndValuesPrecedence(t *testing.T) {
-	model, err := schema.Parse([]byte(`{"type":"object","default":{"enabled":true,"nested":{"count":1}},"properties":{"enabled":{"type":"boolean"},"nested":{"type":"object","properties":{"count":{"type":"integer"}}}}}`))
+	model, err := jsonschema.Parse([]byte(`{"type":"object","default":{"enabled":true,"nested":{"count":1}},"properties":{"enabled":{"type":"boolean"},"nested":{"type":"object","properties":{"count":{"type":"integer"}}}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := Render(model, map[string]any{"nested": map[string]any{"count": 2}})
+	got, err := markdown.Render(model, map[string]any{"nested": map[string]any{"count": 2}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,13 +61,13 @@ func TestRenderUsesRootDefaultAndValuesPrecedence(t *testing.T) {
 }
 
 func TestRenderUsesRootDefaultWhenValuesAreEmptyWithoutMutation(t *testing.T) {
-	model, err := schema.Parse([]byte(`{"type":"object","default":{"enabled":true,"nested":{"count":1}},"properties":{"enabled":{"type":"boolean"},"nested":{"type":"object","properties":{"count":{"type":"integer"}}}}}`))
+	model, err := jsonschema.Parse([]byte(`{"type":"object","default":{"enabled":true,"nested":{"count":1}},"properties":{"enabled":{"type":"boolean"},"nested":{"type":"object","properties":{"count":{"type":"integer"}}}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
 	values := map[string]any{}
 	before := map[string]any{}
-	got, err := Render(model, values)
+	got, err := markdown.Render(model, values)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,11 +80,11 @@ func TestRenderUsesRootDefaultWhenValuesAreEmptyWithoutMutation(t *testing.T) {
 }
 
 func TestRenderEscapesAllPropertyPathSegments(t *testing.T) {
-	model, err := schema.Parse([]byte(`{"properties":{"parent":{"properties":{"a.b|c\"d":{"type":"string"}}}}}`))
+	model, err := jsonschema.Parse([]byte(`{"properties":{"parent":{"properties":{"a.b|c\"d":{"type":"string"}}}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := Render(model, map[string]any{"parent": map[string]any{"a.b|c\"d": "value"}})
+	got, err := markdown.Render(model, map[string]any{"parent": map[string]any{"a.b|c\"d": "value"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,11 +94,11 @@ func TestRenderEscapesAllPropertyPathSegments(t *testing.T) {
 }
 
 func TestRenderReportsUnsupportedKeywordsAtTheirPaths(t *testing.T) {
-	model, err := schema.Parse([]byte(`{"additionalProperties":false,"properties":{"setting":{"const":"fixed","dependentRequired":{"x":["y"]}}}}`))
+	model, err := jsonschema.Parse([]byte(`{"additionalProperties":false,"properties":{"setting":{"const":"fixed","dependentRequired":{"x":["y"]}}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := Render(model, map[string]any{})
+	got, err := markdown.Render(model, map[string]any{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,11 +111,11 @@ func TestRenderReportsUnsupportedKeywordsAtTheirPaths(t *testing.T) {
 }
 
 func TestRenderNonObjectRootDefaultRemainsMissing(t *testing.T) {
-	model, err := schema.Parse([]byte(`{"type":"object","default":false,"properties":{"enabled":{"type":"boolean"}}}`))
+	model, err := jsonschema.Parse([]byte(`{"type":"object","default":false,"properties":{"enabled":{"type":"boolean"}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := Render(model, map[string]any{})
+	got, err := markdown.Render(model, map[string]any{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,12 +150,41 @@ func assertApproval(t *testing.T, name string, got []byte) {
 	}
 }
 
-func TestRenderReportsUnsupportedRootConstructs(t *testing.T) {
-	model, err := schema.Parse([]byte(`{"oneOf":[{"type":"string"}]}`))
+func TestRenderShowsInferredTypesAndEnumDetails(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{
+		"properties":{
+			"choices":{"type":"string","enum":["small","large"],"examples":["small"]},
+			"entries":{"items":{"type":"integer"}},
+			"object":{"properties":{"enabled":{"type":"boolean"}}},
+			"unknown":{}
+		}
+	}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := Render(model, map[string]any{})
+	got, err := markdown.Render(model, map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	document := string(got)
+	for _, want := range []string{
+		`| ["choices"] | string | no | — |  | enum=["small","large"], examples=["small"] |`,
+		`| ["entries"] | array | no | — |  |  |`,
+		`| ["object"] | object | no | — |  |  |`,
+		`| ["unknown"] | any | no | — |  |  |`,
+	} {
+		if !containsLine(document, want) {
+			t.Errorf("rendered documentation is missing %q:\n%s", want, document)
+		}
+	}
+}
+
+func TestRenderReportsUnsupportedRootConstructs(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{"oneOf":[{"type":"string"}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := markdown.Render(model, map[string]any{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,11 +194,11 @@ func TestRenderReportsUnsupportedRootConstructs(t *testing.T) {
 }
 
 func TestRenderEscapesCellsAndUsesDefaults(t *testing.T) {
-	model, err := schema.Parse([]byte(`{"properties":{"a|b":{"type":"string","default":"x|y"}}}`))
+	model, err := jsonschema.Parse([]byte(`{"properties":{"a|b":{"type":"string","default":"x|y"}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := Render(model, map[string]any{})
+	got, err := markdown.Render(model, map[string]any{})
 	if err != nil {
 		t.Fatal(err)
 	}

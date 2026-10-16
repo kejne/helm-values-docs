@@ -1,4 +1,4 @@
-// Package markdown renders the canonical standalone API document.
+// Package markdown adapts the domain model to canonical standalone Markdown.
 package markdown
 
 import (
@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kejne/helm-values-docs/internal/schema"
+	"github.com/kejne/helm-values-docs/internal/domain"
 )
 
 // Render produces deterministic Markdown for a schema and effective values.
-func Render(root *schema.Schema, values map[string]any) ([]byte, error) {
+func Render(root *domain.Schema, values map[string]any) ([]byte, error) {
 	if root == nil {
 		return nil, fmt.Errorf("schema is nil")
 	}
@@ -39,7 +39,7 @@ func Render(root *schema.Schema, values map[string]any) ([]byte, error) {
 	return []byte(b.String()), nil
 }
 
-func renderProperty(b *strings.Builder, current *schema.Schema, path, name string, parent any, required bool, notes *[]string) {
+func renderProperty(b *strings.Builder, current *domain.Schema, path, name string, parent any, required bool, notes *[]string) {
 	value, present := propertyValue(parent, name)
 	if !present && current.HasDefault {
 		value, present = current.Default, true
@@ -56,7 +56,7 @@ func renderProperty(b *strings.Builder, current *schema.Schema, path, name strin
 	}
 	b.WriteString(" | ")
 	if present {
-		b.WriteString(cell(schema.JSON(value)))
+		b.WriteString(cell(domain.JSON(value)))
 	} else {
 		b.WriteString("—")
 	}
@@ -84,7 +84,7 @@ func propertyValue(parent any, name string) (any, bool) {
 	return value, ok
 }
 
-func effectiveValues(root *schema.Schema, values map[string]any) map[string]any {
+func effectiveValues(root *domain.Schema, values map[string]any) map[string]any {
 	result := make(map[string]any)
 	if defaults, ok := root.Default.(map[string]any); root.HasDefault && ok {
 		result = cloneMap(defaults)
@@ -140,7 +140,7 @@ func pathSegment(name string) string {
 	return "[" + strconv.Quote(name) + "]"
 }
 
-func typeName(current *schema.Schema) string {
+func typeName(current *domain.Schema) string {
 	if len(current.Types) > 0 {
 		return strings.Join(current.Types, " | ")
 	}
@@ -153,7 +153,7 @@ func typeName(current *schema.Schema) string {
 	return "any"
 }
 
-func constraints(current *schema.Schema) string {
+func constraints(current *domain.Schema) string {
 	parts := make([]string, 0, len(current.Constraints)+2)
 	keys := make([]string, 0, len(current.Constraints))
 	for key := range current.Constraints {
@@ -161,13 +161,13 @@ func constraints(current *schema.Schema) string {
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
-		parts = append(parts, key+"="+schema.JSON(current.Constraints[key]))
+		parts = append(parts, key+"="+domain.JSON(current.Constraints[key]))
 	}
 	if len(current.Enum) > 0 {
-		parts = append(parts, "enum="+schema.JSON(current.Enum))
+		parts = append(parts, "enum="+domain.JSON(current.Enum))
 	}
 	if len(current.Examples) > 0 {
-		parts = append(parts, "examples="+schema.JSON(current.Examples))
+		parts = append(parts, "examples="+domain.JSON(current.Examples))
 	}
 	return strings.Join(parts, ", ")
 }

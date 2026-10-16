@@ -1,4 +1,4 @@
-package cli
+package cli_test
 
 import (
 	"bytes"
@@ -7,6 +7,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kejne/helm-values-docs/internal/adapters/in/cli"
+	"github.com/kejne/helm-values-docs/internal/adapters/out/filesystem"
+	"github.com/kejne/helm-values-docs/internal/adapters/out/jsonschema"
+	"github.com/kejne/helm-values-docs/internal/adapters/out/markdown"
+	"github.com/kejne/helm-values-docs/internal/adapters/out/yamlvalues"
+	"github.com/kejne/helm-values-docs/internal/app"
 )
 
 func TestRenderCommand(t *testing.T) {
@@ -21,7 +28,7 @@ func TestRenderCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stderr bytes.Buffer
-	if code := Run([]string{"render", "--schema", schema, "--values", values, "--output", output}, &bytes.Buffer{}, &stderr); code != 0 {
+	if code := cli.Run([]string{"render", "--schema", schema, "--values", values, "--output", output}, &bytes.Buffer{}, &stderr, testService()); code != 0 {
 		t.Fatalf("Run returned %d: %s", code, stderr.String())
 	}
 	data, err := os.ReadFile(output)
@@ -35,7 +42,7 @@ func TestRenderCommand(t *testing.T) {
 
 func TestRenderRequiresInputs(t *testing.T) {
 	var stderr bytes.Buffer
-	if code := Run([]string{"render"}, &bytes.Buffer{}, &stderr); code != 2 {
+	if code := cli.Run([]string{"render"}, &bytes.Buffer{}, &stderr, testService()); code != 2 {
 		t.Fatalf("Run returned %d, want 2", code)
 	}
 }
@@ -53,7 +60,7 @@ func TestCheckCommand(t *testing.T) {
 	}
 	var stderr bytes.Buffer
 	args := []string{"render", "--schema", schema, "--values", values, "--output", output}
-	if code := Run(args, &bytes.Buffer{}, &stderr); code != 0 {
+	if code := cli.Run(args, &bytes.Buffer{}, &stderr, testService()); code != 0 {
 		t.Fatalf("render returned %d: %s", code, stderr.String())
 	}
 	before, err := os.ReadFile(output)
@@ -62,7 +69,7 @@ func TestCheckCommand(t *testing.T) {
 	}
 	stderr.Reset()
 	checkArgs := []string{"check", "--schema", schema, "--values", values, "--output", output}
-	if code := Run(checkArgs, &bytes.Buffer{}, &stderr); code != 0 {
+	if code := cli.Run(checkArgs, &bytes.Buffer{}, &stderr, testService()); code != 0 {
 		t.Fatalf("current check returned %d: %s", code, stderr.String())
 	}
 	if after, err := os.ReadFile(output); err != nil {
@@ -74,7 +81,7 @@ func TestCheckCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 	stderr.Reset()
-	if code := Run(checkArgs, &bytes.Buffer{}, &stderr); code != 1 {
+	if code := cli.Run(checkArgs, &bytes.Buffer{}, &stderr, testService()); code != 1 {
 		t.Fatalf("stale check returned %d, want 1: %s", code, stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "stale") {
@@ -84,7 +91,7 @@ func TestCheckCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 	stderr.Reset()
-	if code := Run(checkArgs, &bytes.Buffer{}, &stderr); code != 1 {
+	if code := cli.Run(checkArgs, &bytes.Buffer{}, &stderr, testService()); code != 1 {
 		t.Fatalf("missing check returned %d, want 1: %s", code, stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "missing") {
@@ -105,7 +112,7 @@ func TestCheckDoesNotMutateOutputMetadata(t *testing.T) {
 	}
 	var stderr bytes.Buffer
 	args := []string{"render", "--schema", schema, "--values", values, "--output", output}
-	if code := Run(args, &bytes.Buffer{}, &stderr); code != 0 {
+	if code := cli.Run(args, &bytes.Buffer{}, &stderr, testService()); code != 0 {
 		t.Fatalf("render returned %d: %s", code, stderr.String())
 	}
 	const mode = 0o640
@@ -122,7 +129,7 @@ func TestCheckDoesNotMutateOutputMetadata(t *testing.T) {
 	}
 	stderr.Reset()
 	checkArgs := []string{"check", "--schema", schema, "--values", values, "--output", output}
-	if code := Run(checkArgs, &bytes.Buffer{}, &stderr); code != 0 {
+	if code := cli.Run(checkArgs, &bytes.Buffer{}, &stderr, testService()); code != 0 {
 		t.Fatalf("check returned %d: %s", code, stderr.String())
 	}
 	after, err := os.Stat(output)
@@ -146,7 +153,7 @@ func TestCheckMissingSchemaReturnsInputError(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stderr bytes.Buffer
-	code := Run([]string{"check", "--schema", schema, "--values", values, "--output", output}, &bytes.Buffer{}, &stderr)
+	code := cli.Run([]string{"check", "--schema", schema, "--values", values, "--output", output}, &bytes.Buffer{}, &stderr, testService())
 	if code != 2 {
 		t.Fatalf("check returned %d, want 2: %s", code, stderr.String())
 	}
@@ -167,7 +174,7 @@ func TestCheckInvalidInputReturnsUsageError(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stderr bytes.Buffer
-	code := Run([]string{"check", "--schema", schema, "--values", values, "--output", output}, &bytes.Buffer{}, &stderr)
+	code := cli.Run([]string{"check", "--schema", schema, "--values", values, "--output", output}, &bytes.Buffer{}, &stderr, testService())
 	if code != 2 {
 		t.Fatalf("check returned %d, want 2: %s", code, stderr.String())
 	}
@@ -190,7 +197,7 @@ func TestTemplateCompositionGoldenAndCheck(t *testing.T) {
 	}
 	var stderr bytes.Buffer
 	args := []string{"render", "--schema", schema, "--values", values, "--output", output, "--template", templatePath}
-	if code := Run(args, &bytes.Buffer{}, &stderr); code != 0 {
+	if code := cli.Run(args, &bytes.Buffer{}, &stderr, testService()); code != 0 {
 		t.Fatalf("render returned %d: %s", code, stderr.String())
 	}
 	got, err := os.ReadFile(output)
@@ -200,7 +207,7 @@ func TestTemplateCompositionGoldenAndCheck(t *testing.T) {
 	assertApproval(t, "composed.md", got)
 	stderr.Reset()
 	checkArgs := []string{"check", "--schema", schema, "--values", values, "--output", output, "--template", templatePath}
-	if code := Run(checkArgs, &bytes.Buffer{}, &stderr); code != 0 {
+	if code := cli.Run(checkArgs, &bytes.Buffer{}, &stderr, testService()); code != 0 {
 		t.Fatalf("check returned %d: %s", code, stderr.String())
 	}
 }
@@ -247,11 +254,15 @@ func TestTemplateErrorsIncludePath(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stderr bytes.Buffer
-	code := Run([]string{"render", "--schema", schema, "--values", values, "--output", output, "--template", templatePath}, &bytes.Buffer{}, &stderr)
+	code := cli.Run([]string{"render", "--schema", schema, "--values", values, "--output", output, "--template", templatePath}, &bytes.Buffer{}, &stderr, testService())
 	if code != 2 {
 		t.Fatalf("render returned %d, want 2: %s", code, stderr.String())
 	}
 	if !strings.Contains(stderr.String(), templatePath) {
 		t.Fatalf("template diagnostic %q does not name path %q", stderr.String(), templatePath)
 	}
+}
+
+func testService() *app.Service {
+	return app.New(jsonschema.Loader{}, yamlvalues.Adapter{}, markdown.Adapter{}, filesystem.TemplateAdapter{}, filesystem.Store{})
 }

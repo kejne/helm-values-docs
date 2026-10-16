@@ -20,6 +20,10 @@ local fast_checks = new Mapping<String, Step> {
         glob = "**/*.go"
         check = "coverage_file=$(mktemp); trap 'rm -f \"$coverage_file\"' EXIT; go test -coverpkg=./... -coverprofile=\"$coverage_file\" ./... && covgate -threshold=80 \"$coverage_file\""
     }
+    ["go-arch-lint"] {
+        glob = List("**/*.go", ".go-arch-lint.yml")
+        check = "go-arch-lint check"
+    }
     ["go-mod-tidy"] = (Builtins.gomod_tidy) {
         glob = List("**/*.go", "**/go.mod", "**/go.sum")
     }

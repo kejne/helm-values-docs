@@ -1,31 +1,16 @@
-// Package schema contains the supported, deliberately small JSON Schema model.
-package schema
+// Package jsonschema translates JSON Schema documents into the domain model.
+package jsonschema
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"sort"
+
+	"github.com/kejne/helm-values-docs/internal/domain"
 )
 
-// Schema is the supported subset of a JSON Schema used by the renderer.
-type Schema struct {
-	Types       []string
-	Description string
-	Default     any
-	HasDefault  bool
-	Enum        []any
-	Examples    []any
-	Properties  map[string]*Schema
-	Required    map[string]bool
-	Items       *Schema
-	Constraints map[string]any
-	// Unsupported contains advanced schema keywords found at this node.
-	Unsupported []string
-}
-
 // Parse decodes a JSON Schema document.
-func Parse(data []byte) (*Schema, error) {
+func Parse(data []byte) (*domain.Schema, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("decode JSON schema: %w", err)
@@ -33,9 +18,9 @@ func Parse(data []byte) (*Schema, error) {
 	return parseObject(raw, "$")
 }
 
-func parseObject(raw map[string]json.RawMessage, path string) (*Schema, error) {
-	result := &Schema{
-		Properties:  make(map[string]*Schema),
+func parseObject(raw map[string]json.RawMessage, path string) (*domain.Schema, error) {
+	result := &domain.Schema{
+		Properties:  make(map[string]*domain.Schema),
 		Required:    make(map[string]bool),
 		Constraints: make(map[string]any),
 	}
@@ -144,26 +129,4 @@ func isUnsupported(key string) bool {
 		// does not understand. The renderer will report it at its schema path.
 		return true
 	}
-}
-
-// PropertyNames returns property names in canonical order.
-func (s *Schema) PropertyNames() []string {
-	result := make([]string, 0, len(s.Properties))
-	for name := range s.Properties {
-		result = append(result, name)
-	}
-	sort.Strings(result)
-	return result
-}
-
-// JSON returns a compact deterministic representation of a value.
-func JSON(value any) string {
-	if value == nil {
-		return "null"
-	}
-	data, err := json.Marshal(value)
-	if err != nil {
-		return fmt.Sprint(value)
-	}
-	return string(bytes.TrimSpace(data))
 }

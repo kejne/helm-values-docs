@@ -1,0 +1,22 @@
+version: 3
+workdir: internal
+excludeFiles: [".*_test\\.go$"]
+vendors:
+  yaml: { in: gopkg.in/yaml.v3 }
+components:
+  domain: { in: domain }
+  ports-in: { in: ports/in }
+  ports-out: { in: ports/out }
+  app: { in: app }
+  adapters-in: { in: adapters/in/** }
+  adapters-out: { in: adapters/out/** }
+deps:
+  app:
+    mayDependOn: [domain, ports-in, ports-out]
+  ports-out:
+    mayDependOn: [domain]
+  adapters-in:
+    mayDependOn: [ports-in]
+  adapters-out:
+    mayDependOn: [domain]
+    canUse: [yaml]

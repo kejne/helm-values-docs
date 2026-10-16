@@ -1,5 +1,5 @@
-// Package input loads and combines Helm values files.
-package input
+// Package yamlvalues adapts ordered YAML values files to effective values.
+package yamlvalues
 
 import (
 	"fmt"
