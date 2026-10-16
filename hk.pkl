@@ -62,6 +62,7 @@ local full_checks = (fast_checks) {
     }
     ["go-sec"] = (Builtins.go_sec) {
         glob = "**/*.go"
+        check = "gosec -quiet ./..."
     }
     ["go-vuln-check"] = (Builtins.go_vuln_check) {
         glob = "**/*.go"
