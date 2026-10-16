@@ -16,14 +16,6 @@ local fast_checks = new Mapping<String, Step> {
         glob = "**/*.go"
         check = "go test ./..."
     }
-    ["go-coverage"] {
-        glob = "**/*.go"
-        check = "coverage_file=$(mktemp); trap 'rm -f \"$coverage_file\"' EXIT; go test -coverpkg=./... -coverprofile=\"$coverage_file\" ./... && covgate -threshold=80 \"$coverage_file\""
-    }
-    ["go-arch-lint"] {
-        glob = List("**/*.go", ".go-arch-lint.yml")
-        check = "go-arch-lint check"
-    }
     ["go-mod-tidy"] = (Builtins.gomod_tidy) {
         glob = List("**/*.go", "**/go.mod", "**/go.sum")
     }
@@ -56,6 +48,14 @@ local fast_checks = new Mapping<String, Step> {
 }
 
 local full_checks = (fast_checks) {
+    ["go-coverage"] {
+        glob = "**/*.go"
+        check = "coverage_file=$(mktemp); trap 'rm -f \"$coverage_file\"' EXIT; go test -coverpkg=./... -coverprofile=\"$coverage_file\" ./... && covgate -threshold=80 \"$coverage_file\""
+    }
+    ["go-arch-lint"] {
+        glob = List("**/*.go", ".go-arch-lint.yml")
+        check = "go-arch-lint check"
+    }
     ["go-gremlins"] {
         glob = List("**/*.go", ".gremlins.yaml")
         check = "gremlins unleash"
@@ -72,6 +72,9 @@ local full_checks = (fast_checks) {
 steps = fast_checks
 
 hooks {
+    ["pre-commit"] {
+        steps = fast_checks
+    }
     ["pre-push"] {
         steps = full_checks
     }
