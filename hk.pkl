@@ -48,7 +48,7 @@ local fast_checks = new Mapping<String, Step> {
 }
 
 local full_checks = (fast_checks) {
-    ["go-coverage"] {
+    ["go-test"] {
         glob = "**/*.go"
         check = "coverage_file=$(mktemp); trap 'rm -f \"$coverage_file\"' EXIT; go test -coverpkg=./... -coverprofile=\"$coverage_file\" ./... && covgate -threshold=80 \"$coverage_file\""
     }
