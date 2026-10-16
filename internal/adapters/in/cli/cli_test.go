@@ -35,7 +35,7 @@ func TestRenderCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `| ["enabled"] | boolean | no | true |`) {
+	if !strings.Contains(string(data), "| Default | `true` |") {
 		t.Fatalf("output does not contain rendered value:\n%s", data)
 	}
 }

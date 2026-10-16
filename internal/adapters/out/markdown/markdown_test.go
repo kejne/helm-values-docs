@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -32,6 +33,26 @@ func TestRenderGolden(t *testing.T) {
 	assertApproval(t, "standalone.md", got)
 }
 
+func TestRenderContentsUsesReadableDynamicMapNames(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{"properties":{"apps":{"type":"object","additionalProperties":{"title":"app","type":"object","properties":{"tag":{"type":"string"}}}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := markdown.Render(model, map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	document := string(got)
+	for _, want := range []string{"- [apps](#apps)", "  - [app](#apps_app)"} {
+		if !strings.Contains(document, want) {
+			t.Errorf("contents missing %q:\n%s", want, document)
+		}
+	}
+	if strings.Contains(document, "- [1. Property") || strings.Contains(document, "- [2. Property") || strings.Contains(document, "## 1. Property") || strings.Contains(document, "## Property") {
+		t.Fatalf("numbering or 'Property' leaked into the output headings:\n%s", document)
+	}
+}
+
 func TestRenderLooksUpPropertyNamesContainingDots(t *testing.T) {
 	model, err := jsonschema.Parse([]byte(`{"properties":{"a.b":{"type":"string"}}}`))
 	if err != nil {
@@ -41,12 +62,12 @@ func TestRenderLooksUpPropertyNamesContainingDots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !containsLine(string(got), `| ["a.b"] | string | no | "value" |  |  |`) {
+	if !containsLine(string(got), "| Default | `\"value\"` |") {
 		t.Fatalf("dotted property value missing from:\n%s", got)
 	}
 }
 
-func TestRenderUsesRootDefaultAndValuesPrecedence(t *testing.T) {
+func TestRenderUsesValuesAndIgnoresSchemaDefaults(t *testing.T) {
 	model, err := jsonschema.Parse([]byte(`{"type":"object","default":{"enabled":true,"nested":{"count":1}},"properties":{"enabled":{"type":"boolean"},"nested":{"type":"object","properties":{"count":{"type":"integer"}}}}}`))
 	if err != nil {
 		t.Fatal(err)
@@ -55,12 +76,12 @@ func TestRenderUsesRootDefaultAndValuesPrecedence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !containsLine(string(got), `| ["enabled"] | boolean | no | true |  |  |`) || !containsLine(string(got), `| ["nested"]["count"] | integer | no | 2 |  |  |`) {
+	if !strings.Contains(string(got), `| Default | — |`) || !strings.Contains(string(got), "| Default | `2` |") {
 		t.Fatalf("root default or values precedence missing from:\n%s", got)
 	}
 }
 
-func TestRenderUsesRootDefaultWhenValuesAreEmptyWithoutMutation(t *testing.T) {
+func TestRenderDoesNotUseSchemaDefaultsWhenValuesAreEmpty(t *testing.T) {
 	model, err := jsonschema.Parse([]byte(`{"type":"object","default":{"enabled":true,"nested":{"count":1}},"properties":{"enabled":{"type":"boolean"},"nested":{"type":"object","properties":{"count":{"type":"integer"}}}}}`))
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +92,7 @@ func TestRenderUsesRootDefaultWhenValuesAreEmptyWithoutMutation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !containsLine(string(got), `| ["enabled"] | boolean | no | true |  |  |`) || !containsLine(string(got), `| ["nested"]["count"] | integer | no | 1 |  |  |`) {
+	if !containsLine(string(got), `| Default | — |`) {
 		t.Fatalf("root default missing from:\n%s", got)
 	}
 	if !reflect.DeepEqual(values, before) {
@@ -88,7 +109,7 @@ func TestRenderEscapesAllPropertyPathSegments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !containsLine(string(got), `| ["parent"]["a.b\|c\\"d"] | string | no | "value" |  |  |`) {
+	if !strings.Contains(string(got), "| Default | `\"value\"` |") {
 		t.Fatalf("escaped property path missing from:\n%s", got)
 	}
 }
@@ -103,7 +124,10 @@ func TestRenderReportsUnsupportedKeywordsAtTheirPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	document := string(got)
-	for _, note := range []string{"- `$`: `additionalProperties`", "- `[\"setting\"]`: `const`", "- `[\"setting\"]`: `dependentRequired`"} {
+	if !strings.Contains(string(got), `| Additional properties | Not allowed |`) {
+		t.Fatalf("root additionalProperties policy missing from:\n%s", got)
+	}
+	for _, note := range []string{"- `setting`: `const`", "- `setting`: `dependentRequired`"} {
 		if !containsLine(document, note) {
 			t.Fatalf("unsupported note %q missing from:\n%s", note, document)
 		}
@@ -119,7 +143,7 @@ func TestRenderNonObjectRootDefaultRemainsMissing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !containsLine(string(got), `| ["enabled"] | boolean | no | — |  |  |`) {
+	if !containsLine(string(got), `| Default | — |`) {
 		t.Fatalf("non-object root default changed missing-value behavior:\n%s", got)
 	}
 }
@@ -168,12 +192,12 @@ func TestRenderShowsInferredTypesAndEnumDetails(t *testing.T) {
 	}
 	document := string(got)
 	for _, want := range []string{
-		`| ["choices"] | string | no | — |  | enum=["small","large"], examples=["small"] |`,
-		`| ["entries"] | array | no | — |  |  |`,
-		`| ["object"] | object | no | — |  |  |`,
-		`| ["unknown"] | any | no | — |  |  |`,
+		`| Constraints | enum=["small","large"], examples=["small"] |`,
+		"| Type | `array` |",
+		"| Type | `object` |",
+		"| Type | `any` |",
 	} {
-		if !containsLine(document, want) {
+		if !strings.Contains(document, want) {
 			t.Errorf("rendered documentation is missing %q:\n%s", want, document)
 		}
 	}
@@ -202,7 +226,7 @@ func TestRenderEscapesCellsAndUsesDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := `| ["a\|b"] | string | no | "x\|y" |  |  |`; !containsLine(string(got), want) {
+	if want := `| Default | — |`; !containsLine(string(got), want) {
 		t.Fatalf("escaped/default row missing from:\n%s", got)
 	}
 }

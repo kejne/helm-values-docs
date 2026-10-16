@@ -21,8 +21,9 @@ helm-values-docs render \
 
 `--values` is repeatable. Files are merged in command-line order: mappings are
 merged recursively and later scalar or sequence values replace earlier values.
-Schema defaults are used when no values file supplies a property. Properties
-are sorted lexically, so output is deterministic. The renderer supports types,
+Displayed defaults come only from the merged values files; schema defaults are
+not used. Properties are sorted lexically, so output is deterministic. The
+renderer supports types,
 descriptions, required properties, defaults, enums, examples, and common
 string, number, and array constraints. Unsupported advanced schema constructs
 are listed in the generated document rather than inferred.

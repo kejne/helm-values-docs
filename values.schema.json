@@ -1,0 +1,414 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "fullnameOverride": {
+      "type": "string",
+      "description": "Override the generated names for chart-owned resources. Leave empty to use chart defaults."
+    },
+    "global": {
+      "type": "object",
+      "description": "Global values are populated by the Drive platform during deployment and by drv during local development. Users do not need to set them manually.",
+      "additionalProperties": false,
+      "properties": {
+        "systemName": {
+          "type": "string",
+          "description": "Drive system identifier supplied by the delivery platform."
+        },
+        "stageName": {
+          "type": "string",
+          "description": "Stage identifier supplied by the delivery platform."
+        },
+        "verticalId": {
+          "type": "string",
+          "description": "Drive vertical identifier supplied by the delivery platform."
+        },
+        "domain": {
+          "type": "string",
+          "description": "Base domain used by platform-managed routes and integrations."
+        },
+        "image": {
+          "type": "object",
+          "description": "Shared container image registry configuration.",
+          "additionalProperties": false,
+          "properties": {
+            "registry": {
+              "type": "string",
+              "description": "Container image registry prefix supplied by the delivery platform."
+            }
+          }
+        }
+      }
+    },
+    "drive-system-lib": {
+      "type": "object",
+      "description": "Internal values namespace for the drive-system-lib dependency; not intended for chart consumers.",
+      "additionalProperties": true
+    },
+    "otel": {
+      "type": "object",
+      "description": "Controls OpenTelemetry export configuration for all app workloads.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable app telemetry export to the platform node collector."
+        }
+      }
+    },
+    "secrets": {
+      "description": "Names of platform-managed secrets to expose to this system as ExternalSecrets. Secret values are not supplied in chart values.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "appDefaults": {
+      "type": "object",
+      "description": "Default container port, probe port, and resource requests/limits inherited by apps unless overridden per app.",
+      "additionalProperties": false,
+      "properties": {
+        "containerPort": {
+          "type": "integer",
+          "description": "Default port exposed by each app container and Service."
+        },
+        "probes": {
+          "type": "object",
+          "description": "Default probe port for app workloads.",
+          "additionalProperties": false,
+          "properties": {
+            "port": {
+              "type": "integer",
+              "description": "Default port used by shorthand HTTP readiness and liveness probes."
+            }
+          }
+        },
+        "resources": {
+          "type": "object",
+          "description": "Default Kubernetes container resource requests and limits inherited by apps without an app-level override.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "apps": {
+      "type": "object",
+      "description": "Application workloads keyed by app name. Each key becomes the workload and service name.",
+      "additionalProperties": {
+        "title": "app",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "description": "Runtime profile used for profile-specific workload behavior. `java` selects Java security identity and enables a default startup probe when a liveness path is configured.",
+            "type": "string",
+            "minLength": 1
+          },
+          "tag": {
+            "description": "Container image tag for this app. Required; the image repository is derived from the app name and global registry.",
+            "type": "string",
+            "minLength": 1
+          },
+          "replicaCount": {
+            "description": "Fixed Deployment replica count when autoscaling is not configured. Defaults to 1; set 0 to scale down.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "autoscaling": {
+            "description": "Configure a HorizontalPodAutoscaler instead of a fixed replica count.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "minReplicas": {
+                "description": "Minimum number of app replicas maintained by the autoscaler.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "maxReplicas": {
+                "description": "Maximum number of app replicas maintained by the autoscaler.",
+                "type": "integer",
+                "minimum": 1
+              },
+              "targetCpuPercent": {
+                "description": "Target average CPU utilization percentage used for autoscaling.",
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "minReplicas",
+              "maxReplicas"
+            ]
+          },
+          "containerPort": {
+            "description": "Port exposed by the app container and its Kubernetes Service.",
+            "type": "integer"
+          },
+          "httpGateway": {
+            "description": "Enable platform HTTP routes for the app. Each enabled exposure creates a route at /<app-name>.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "public": {
+                "description": "Expose this app through the public HTTP gateway.",
+                "type": "boolean"
+              },
+              "gated": {
+                "description": "Expose this app through the gated HTTP gateway.",
+                "type": "boolean"
+              },
+              "private": {
+                "description": "Expose this app through the private HTTP gateway.",
+                "type": "boolean"
+              }
+            }
+          },
+          "extraEgress": {
+            "description": "Additional Cilium egress rules for this app, using CiliumNetworkPolicy rule fields. `toSystems` is a chart-specific shorthand for another Drive system. See the [Cilium network policy documentation](https://docs.cilium.io/en/stable/security/policy/).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "extraIngress": {
+            "description": "Additional Cilium ingress rules for this app. `fromSystems` is a chart-specific shorthand for another Drive system. See the [Cilium network policy documentation](https://docs.cilium.io/en/stable/security/policy/).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "strategy": {
+            "description": "Optional Kubernetes Deployment strategy override. See the [Kubernetes Deployment API](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/#DeploymentSpec).",
+            "type": "object",
+            "additionalProperties": true
+          },
+          "resources": {
+            "description": "Kubernetes container resource requests and limits. Replaces appDefaults.resources when set.",
+            "type": "object",
+            "additionalProperties": true
+          },
+          "env": {
+            "description": "Additional environment variables with literal string values.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "secretEnv": {
+            "description": "Environment variables sourced from existing Kubernetes Secrets, keyed by environment variable name.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "secretName": {
+                  "description": "Name of the existing Kubernetes Secret containing the environment variable value.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "secretKey": {
+                  "description": "Key within the Secret to expose as the environment variable value.",
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "secretName",
+                "secretKey"
+              ]
+            }
+          },
+          "probes": {
+            "description": "Readiness, liveness, and startup probes. Full Kubernetes probe objects override the shorthand HTTP paths.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "port": {
+                "type": "integer",
+                "description": "Port used by shorthand HTTP readiness and liveness probes; defaults to appDefaults.probes.port."
+              },
+              "readiness": {
+                "type": "string",
+                "description": "HTTP path for a generated readiness probe. Overridden by readinessProbe when provided."
+              },
+              "liveness": {
+                "type": "string",
+                "description": "HTTP path for a generated liveness probe and, for Java apps, the default startup probe. Overridden by livenessProbe for liveness."
+              },
+              "readinessProbe": {
+                "description": "Full Kubernetes readinessProbe object; takes precedence over the readiness path.",
+                "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/8df8a883b68a24a104b4a9e43c1288090ae60b3b/master-standalone-strict/probe-v1.json"
+              },
+              "livenessProbe": {
+                "description": "Full Kubernetes livenessProbe object; takes precedence over the liveness path.",
+                "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/8df8a883b68a24a104b4a9e43c1288090ae60b3b/master-standalone-strict/probe-v1.json"
+              },
+              "startup": {
+                "description": "Optional full Kubernetes startupProbe object. For Java apps, replaces the default startup probe derived from the liveness path.",
+                "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/8df8a883b68a24a104b4a9e43c1288090ae60b3b/master-standalone-strict/probe-v1.json"
+              }
+            }
+          },
+          "volumeMounts": {
+            "description": "Mount existing Secrets/ConfigMaps or emptyDir volumes. Only these chart-supported volume types are accepted.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "ephemeralDirs": {
+                "type": "object",
+                "description": "Named emptyDir volumes for writable ephemeral storage in the otherwise read-only app container.",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {"type": "string", "pattern": "^/", "description": "Absolute path inside the container where the emptyDir volume is mounted."}
+                  },
+                  "required": ["path"]
+                }
+              },
+              "secrets": {
+                "type": "object",
+                "description": "Existing Kubernetes Secrets mounted as volumes, keyed by Secret name.",
+                "additionalProperties": {"$ref": "#/definitions/resourceMount"}
+              },
+              "configMap": {
+                "type": "object",
+                "description": "Existing Kubernetes ConfigMaps mounted as volumes, keyed by ConfigMap name.",
+                "additionalProperties": {"$ref": "#/definitions/resourceMount"}
+              }
+            }
+          },
+          "extraContainers": {
+            "description": "Additional Kubernetes Container objects added to the app Pod. See the [Kubernetes Container API](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "postgres": {
+            "description": "PostgreSQL connection bindings for databases provisioned separately, typically by drive-system-postgres.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "bindings": {
+                "description": "Database connections to inject as app environment variables. Each binding targets a cluster and database resource.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Binding name used to derive the app's PostgreSQL connection environment variable.",
+                      "minLength": 1
+                    },
+                    "clusterRef": {
+                      "type": "string",
+                      "description": "Key of the PostgreSQL cluster in the PostgreSQL chart's clusters map.",
+                      "minLength": 1
+                    },
+                    "databaseRef": {
+                      "type": "string",
+                      "description": "Key of the database within the referenced PostgreSQL cluster.",
+                      "minLength": 1
+                    },
+                    "secretName": {
+                      "type": "string",
+                      "description": "Override the generated database credential Secret name. Defaults to the established name for the db/default binding, otherwise <clusterRef>-<databaseRef>.",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "clusterRef",
+                    "databaseRef"
+                  ]
+                }
+              }
+            }
+          },
+          "nats": {
+            "description": "Enable NATS access for this app. It connects to the account named by global.systemName.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "user": {
+                "description": "Configure access controls for this app's NATS identity.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "permissions": {
+                    "description": "Configure subject access and request reply behavior for this app's NATS user.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "publish": {
+                        "$ref": "#/definitions/subjectPermission"
+                      },
+                      "subscribe": {
+                        "$ref": "#/definitions/subjectPermission"
+                      },
+                      "responses": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "max": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "ttlSeconds": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9223372036
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "tag"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "resourceMount": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {"type": "string", "pattern": "^/", "description": "Absolute container path where the existing Secret or ConfigMap is mounted."},
+        "optional": {"type": "boolean", "description": "Allow the pod to start if the Secret or ConfigMap does not exist. Defaults to false."}
+      },
+      "required": ["path"]
+    },
+    "subjectPermission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": ".*\\S.*"
+          }
+        }
+      },
+      "required": [
+        "allow"
+      ]
+    }
+  }
+}

@@ -72,6 +72,30 @@ func TestParseRejectsInvalidOptionalSchemaDetails(t *testing.T) {
 	}
 }
 
+func TestParseSupportsAdditionalPropertiesAndLocalReferences(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{
+		"properties": {
+			"mounts": {"type":"object", "additionalProperties":{"$ref":"#/definitions/mount"}},
+			"labels": {"type":"object", "additionalProperties":true}
+		},
+		"definitions": {"mount":{"title":"Mount", "type":"object", "properties":{"path":{"type":"string"}}}}
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mounts := model.Properties["mounts"]
+	if mounts.AdditionalSchema == nil || mounts.AdditionalSchema.Title != "Mount" || mounts.AdditionalSchema.Properties["path"] == nil {
+		t.Fatalf("local ref not resolved in additionalProperties: %#v", mounts)
+	}
+	labels := model.Properties["labels"]
+	if labels.AdditionalProperties == nil || !*labels.AdditionalProperties {
+		t.Fatalf("additionalProperties=true not parsed: %#v", labels)
+	}
+	if len(model.Unsupported) != 0 || len(mounts.Unsupported) != 0 {
+		t.Fatalf("supported constructs reported unsupported: root=%v mounts=%v", model.Unsupported, mounts.Unsupported)
+	}
+}
+
 func TestParseReportsEveryUnsupportedKeyword(t *testing.T) {
 	model, err := jsonschema.Parse([]byte(`{
 		"additionalProperties":false,
@@ -84,7 +108,7 @@ func TestParseReportsEveryUnsupportedKeyword(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"$defs", "additionalProperties", "const", "dependentRequired", "minProperties", "patternProperties"}
+	want := []string{"$defs", "const", "dependentRequired", "minProperties", "patternProperties"}
 	if len(model.Unsupported) != len(want) {
 		t.Fatalf("unsupported constructs = %v, want %v", model.Unsupported, want)
 	}

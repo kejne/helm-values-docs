@@ -2,8 +2,22 @@
 
 # Helm values API
 
-| Path | Type | Required | Value | Description | Constraints |
-| --- | --- | --- | --- | --- | --- |
-| ["enabled"] | boolean | no | true |  |  |
+## Contents
+
+- [enabled](#enabled)
+
+| **Schema** | **Details** |
+| --- | --- |
+| Type | `object` |
+
+
+<a id="enabled"></a>
+## `enabled`
+
+| **Property** | **Details** |
+| --- | --- |
+| Type | `boolean` |
+| Required | No |
+| Default | `true` |
 
 ## End

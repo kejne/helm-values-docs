@@ -10,17 +10,21 @@ import (
 
 // Schema is the supported subset of a JSON Schema used by the renderer.
 type Schema struct {
-	Types       []string
-	Description string
-	Default     any
-	HasDefault  bool
-	Enum        []any
-	Examples    []any
-	Properties  map[string]*Schema
-	Required    map[string]bool
-	Items       *Schema
-	Constraints map[string]any
-	Unsupported []string
+	Types                []string
+	Description          string
+	Title                string
+	Default              any
+	HasDefault           bool
+	Enum                 []any
+	Examples             []any
+	Properties           map[string]*Schema
+	Required             map[string]bool
+	Items                *Schema
+	AdditionalProperties *bool
+	AdditionalSchema     *Schema
+	Reference            string
+	Constraints          map[string]any
+	Unsupported          []string
 }
 
 // PropertyNames returns property names in canonical order.

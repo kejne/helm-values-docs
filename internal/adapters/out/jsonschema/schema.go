@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/kejne/helm-values-docs/internal/domain"
 )
@@ -15,14 +16,46 @@ func Parse(data []byte) (*domain.Schema, error) {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("decode JSON schema: %w", err)
 	}
-	return parseObject(raw, "$")
+	definitions := make(map[string]json.RawMessage)
+	if value, ok := raw["definitions"]; ok {
+		if err := json.Unmarshal(value, &definitions); err != nil {
+			return nil, fmt.Errorf("schema $: definitions must be an object")
+		}
+	}
+	return parseObject(raw, "$", definitions)
 }
 
-func parseObject(raw map[string]json.RawMessage, path string) (*domain.Schema, error) {
+func parseObject(raw map[string]json.RawMessage, path string, definitions map[string]json.RawMessage) (*domain.Schema, error) {
 	result := &domain.Schema{
 		Properties:  make(map[string]*domain.Schema),
 		Required:    make(map[string]bool),
 		Constraints: make(map[string]any),
+	}
+	if value, ok := raw["$ref"]; ok {
+		if err := json.Unmarshal(value, &result.Reference); err != nil {
+			return nil, fmt.Errorf("schema %s: $ref must be a string", path)
+		}
+		if strings.HasPrefix(result.Reference, "#/definitions/") {
+			name := strings.TrimPrefix(result.Reference, "#/definitions/")
+			definition, ok := definitions[name]
+			if !ok {
+				return nil, fmt.Errorf("schema %s: unresolved reference %q", path, result.Reference)
+			}
+			var target map[string]json.RawMessage
+			if err := json.Unmarshal(definition, &target); err != nil || target == nil {
+				return nil, fmt.Errorf("schema %s: definition %q must be an object", path, name)
+			}
+			resolved, err := parseObject(target, path, definitions)
+			if err != nil {
+				return nil, err
+			}
+			if description, ok := raw["description"]; ok {
+				if err := json.Unmarshal(description, &resolved.Description); err != nil {
+					return nil, fmt.Errorf("schema %s: description must be a string", path)
+				}
+			}
+			return resolved, nil
+		}
 	}
 	if value, ok := raw["type"]; ok {
 		if err := json.Unmarshal(value, &result.Types); err != nil {
@@ -39,6 +72,11 @@ func parseObject(raw map[string]json.RawMessage, path string) (*domain.Schema, e
 	if value, ok := raw["description"]; ok {
 		if err := json.Unmarshal(value, &result.Description); err != nil {
 			return nil, fmt.Errorf("schema %s: description must be a string", path)
+		}
+	}
+	if value, ok := raw["title"]; ok {
+		if err := json.Unmarshal(value, &result.Title); err != nil {
+			return nil, fmt.Errorf("schema %s: title must be a string", path)
 		}
 	}
 	if value, ok := raw["default"]; ok {
@@ -79,7 +117,7 @@ func parseObject(raw map[string]json.RawMessage, path string) (*domain.Schema, e
 			if err := json.Unmarshal(property, &object); err != nil || object == nil {
 				return nil, fmt.Errorf("schema %s.%s: property must be an object", path, name)
 			}
-			child, err := parseObject(object, path+"."+name)
+			child, err := parseObject(object, path+"."+name, definitions)
 			if err != nil {
 				return nil, err
 			}
@@ -91,11 +129,27 @@ func parseObject(raw map[string]json.RawMessage, path string) (*domain.Schema, e
 		if err := json.Unmarshal(value, &object); err != nil || object == nil {
 			return nil, fmt.Errorf("schema %s: items must be an object", path)
 		}
-		items, err := parseObject(object, path+"[]")
+		items, err := parseObject(object, path+"[]", definitions)
 		if err != nil {
 			return nil, err
 		}
 		result.Items = items
+	}
+	if value, ok := raw["additionalProperties"]; ok {
+		var allowed bool
+		if err := json.Unmarshal(value, &allowed); err == nil {
+			result.AdditionalProperties = &allowed
+		} else {
+			var object map[string]json.RawMessage
+			if err := json.Unmarshal(value, &object); err != nil || object == nil {
+				return nil, fmt.Errorf("schema %s: additionalProperties must be a boolean or schema object", path)
+			}
+			additional, err := parseObject(object, path+".*", definitions)
+			if err != nil {
+				return nil, err
+			}
+			result.AdditionalSchema = additional
+		}
 	}
 	for _, key := range []string{"minLength", "maxLength", "pattern", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minItems", "maxItems", "uniqueItems", "format"} {
 		if value, ok := raw[key]; ok {
@@ -117,8 +171,8 @@ func parseObject(raw map[string]json.RawMessage, path string) (*domain.Schema, e
 
 func isUnsupported(key string) bool {
 	switch key {
-	case "$schema", "$id", "$comment", "title", "deprecated", "readOnly", "writeOnly":
-		// Recognized JSON Schema metadata that does not affect the rendered API.
+	case "$schema", "$id", "$comment", "title", "deprecated", "readOnly", "writeOnly", "definitions", "$ref", "additionalProperties":
+		// Supported keywords are rendered or resolved by the schema adapter.
 		return false
 	case "type", "description", "default", "enum", "examples", "required", "properties", "items",
 		"minLength", "maxLength", "pattern", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",

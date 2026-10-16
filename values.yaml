@@ -1,0 +1,24 @@
+---
+fullnameOverride: ""
+global:
+  systemName: ""
+  stageName: ""
+  verticalId: ""
+  domain: ""
+  image:
+    registry: ""
+otel:
+  enabled: true
+secrets: []
+appDefaults:
+  containerPort: 3000
+  probes:
+    port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+apps: {}
