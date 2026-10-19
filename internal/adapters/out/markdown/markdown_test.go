@@ -33,6 +33,24 @@ func TestRenderGolden(t *testing.T) {
 	assertApproval(t, "standalone.md", got)
 }
 
+func TestRenderIncludesDescriptionInPropertyDetailsTable(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{"properties":{"setting":{"type":"string","description":"First line | detail\nSecond line"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := markdown.Render(model, map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	document := string(got)
+	if !containsLine(document, `| Description | First line &#124; detail<br>Second line |`) {
+		t.Fatalf("description is missing from the property details table:\n%s", document)
+	}
+	if strings.Contains(document, "**Description:**") {
+		t.Fatalf("description was rendered outside the property details table:\n%s", document)
+	}
+}
+
 func TestRenderContentsUsesReadableDynamicMapNames(t *testing.T) {
 	model, err := jsonschema.Parse([]byte(`{"properties":{"apps":{"type":"object","additionalProperties":{"title":"app","type":"object","properties":{"tag":{"type":"string"}}}}}}`))
 	if err != nil {
@@ -203,8 +221,15 @@ func TestRenderShowsInferredTypesAndEnumDetails(t *testing.T) {
 	}
 }
 
-func TestRenderReportsUnsupportedRootConstructs(t *testing.T) {
-	model, err := jsonschema.Parse([]byte(`{"oneOf":[{"type":"string"}]}`))
+func TestRenderDescribesOneOfAndNot(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{
+		"properties":{
+			"nats":{"properties":{
+				"user":{"description":"Bind one NATS user.","oneOf":[{"type":"string","minLength":1},{"type":"object","additionalProperties":true}]},
+				"users":{"type":"array"}
+			},"not":{"required":["user","users"]}}
+		}
+	}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +237,31 @@ func TestRenderReportsUnsupportedRootConstructs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !containsLine(string(got), "- `$`: `oneOf`") {
+	document := string(got)
+	for _, want := range []string{
+		"| Type | `string &#124; object` |",
+		"oneOf: string (minLength=1) or object (additional properties: any type)",
+		"not: required(user, users)",
+	} {
+		if !strings.Contains(document, want) {
+			t.Errorf("rendered documentation is missing %q:\n%s", want, document)
+		}
+	}
+	if strings.Contains(document, "Unsupported schema constructs") {
+		t.Fatalf("supported oneOf/not were reported unsupported:\n%s", document)
+	}
+}
+
+func TestRenderReportsUnsupportedRootConstructs(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{"patternProperties":{"^x":{"type":"string"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := markdown.Render(model, map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsLine(string(got), "- `$`: `patternProperties`") {
 		t.Fatalf("unsupported root note missing from:\n%s", got)
 	}
 }

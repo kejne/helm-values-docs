@@ -20,6 +20,8 @@ type Schema struct {
 	Properties           map[string]*Schema
 	Required             map[string]bool
 	Items                *Schema
+	OneOf                []*Schema
+	Not                  *Schema
 	AdditionalProperties *bool
 	AdditionalSchema     *Schema
 	Reference            string

@@ -23,7 +23,7 @@
 
 | Property | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| [tag](#image_tag) | `string` | No | `"stable"` | Image \| tag |
+| [tag](#image_tag) | `string` | No | `"stable"` | Image &#124; tag |
 
 <a id="image_tag"></a>
 ### `tag`
@@ -33,8 +33,7 @@
 | Type | `string` |
 | Required | No |
 | Default | `"stable"` |
-
-**Description:** Image | tag
+| Description | Image &#124; tag |
 
 <a id="missing"></a>
 ## `missing`
@@ -54,5 +53,4 @@
 | Required | Yes |
 | Default | `3` |
 | Constraints | minimum=1 |
-
-**Description:** Number of pods
+| Description | Number of pods |

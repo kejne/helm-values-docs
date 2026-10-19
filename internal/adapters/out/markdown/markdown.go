@@ -113,9 +113,9 @@ func renderProperty(b *strings.Builder, current *domain.Schema, name, path strin
 		b.WriteString(" |\n")
 	}
 	if current.Description != "" {
-		b.WriteString("\n**Description:** ")
-		b.WriteString(current.Description)
-		b.WriteString("\n")
+		b.WriteString("| Description | ")
+		b.WriteString(cell(current.Description))
+		b.WriteString(" |\n")
 	}
 	for _, unsupported := range current.Unsupported {
 		*notes = append(*notes, fmt.Sprintf("`%s`: `%s`", path, unsupported))
@@ -231,6 +231,18 @@ func typeName(current *domain.Schema) string {
 	if len(current.Types) > 0 {
 		return strings.Join(current.Types, " | ")
 	}
+	if len(current.OneOf) > 0 {
+		branches := make([]string, 0, len(current.OneOf))
+		seen := make(map[string]bool)
+		for _, branch := range current.OneOf {
+			name := typeName(branch)
+			if !seen[name] {
+				branches = append(branches, name)
+				seen[name] = true
+			}
+		}
+		return strings.Join(branches, " | ")
+	}
 	if len(current.Properties) > 0 {
 		return "object"
 	}
@@ -241,7 +253,7 @@ func typeName(current *domain.Schema) string {
 }
 
 func constraints(current *domain.Schema) string {
-	parts := make([]string, 0, len(current.Constraints)+2)
+	parts := make([]string, 0, len(current.Constraints)+len(current.OneOf)+3)
 	keys := make([]string, 0, len(current.Constraints))
 	for key := range current.Constraints {
 		keys = append(keys, key)
@@ -256,12 +268,87 @@ func constraints(current *domain.Schema) string {
 	if len(current.Examples) > 0 {
 		parts = append(parts, "examples="+domain.JSON(current.Examples))
 	}
+	if len(current.OneOf) > 0 {
+		branches := make([]string, 0, len(current.OneOf))
+		for _, branch := range current.OneOf {
+			branches = append(branches, schemaSummary(branch))
+		}
+		parts = append(parts, "oneOf: "+strings.Join(branches, " or "))
+	}
+	if current.Not != nil {
+		parts = append(parts, "not: "+schemaSummary(current.Not))
+	}
 	return strings.Join(parts, ", ")
+}
+
+func schemaSummary(current *domain.Schema) string {
+	name := typeName(current)
+	if name == "any" {
+		name = ""
+	}
+	parts := make([]string, 0, len(current.Constraints)+3)
+	keys := make([]string, 0, len(current.Constraints))
+	for key := range current.Constraints {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		parts = append(parts, key+"="+domain.JSON(current.Constraints[key]))
+	}
+	if len(current.Required) > 0 {
+		names := make([]string, 0, len(current.Required))
+		for name, required := range current.Required {
+			if required {
+				names = append(names, name)
+			}
+		}
+		sort.Strings(names)
+		parts = append(parts, "required("+strings.Join(names, ", ")+")")
+	}
+	if current.AdditionalProperties != nil && *current.AdditionalProperties {
+		parts = append(parts, "additional properties: any type")
+	} else if current.AdditionalProperties != nil {
+		parts = append(parts, "additional properties: not allowed")
+	} else if current.AdditionalSchema != nil {
+		parts = append(parts, "additional properties: "+schemaSummary(current.AdditionalSchema))
+	}
+	if current.Items != nil {
+		parts = append(parts, "items: "+schemaSummary(current.Items))
+	}
+	if len(current.Properties) > 0 {
+		names := current.PropertyNames()
+		properties := make([]string, 0, len(names))
+		for _, property := range names {
+			properties = append(properties, property+": "+schemaSummary(current.Properties[property]))
+		}
+		parts = append(parts, "properties: "+strings.Join(properties, "; "))
+	}
+	if len(current.Enum) > 0 {
+		parts = append(parts, "enum="+domain.JSON(current.Enum))
+	}
+	if len(current.OneOf) > 0 {
+		branches := make([]string, 0, len(current.OneOf))
+		for _, branch := range current.OneOf {
+			branches = append(branches, schemaSummary(branch))
+		}
+		parts = append(parts, "oneOf: "+strings.Join(branches, " or "))
+	}
+	if current.Not != nil {
+		parts = append(parts, "not: "+schemaSummary(current.Not))
+	}
+	details := strings.Join(parts, ", ")
+	if name == "" {
+		return details
+	}
+	if details == "" {
+		return name
+	}
+	return name + " (" + details + ")"
 }
 
 func cell(value string) string {
 	value = strings.ReplaceAll(value, "\\", "\\\\")
-	value = strings.ReplaceAll(value, "|", "\\|")
+	value = strings.ReplaceAll(value, "|", "&#124;")
 	value = strings.ReplaceAll(value, "\r\n", "<br>")
 	value = strings.ReplaceAll(value, "\n", "<br>")
 	value = strings.ReplaceAll(value, "\r", "<br>")

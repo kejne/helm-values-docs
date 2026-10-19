@@ -25,8 +25,8 @@ func TestParseSchema(t *testing.T) {
 	if got := model.PropertyNames(); len(got) != 3 || got[0] != "choice" || got[1] != "image" || got[2] != "replicas" {
 		t.Fatalf("property order = %v", got)
 	}
-	if len(model.Properties["choice"].Unsupported) != 1 || model.Properties["choice"].Unsupported[0] != "oneOf" {
-		t.Fatalf("unsupported constructs = %v", model.Properties["choice"].Unsupported)
+	if len(model.Properties["choice"].Unsupported) != 0 || len(model.Properties["choice"].OneOf) != 1 {
+		t.Fatalf("oneOf was not parsed as a supported construct: %#v", model.Properties["choice"])
 	}
 }
 
@@ -93,6 +93,33 @@ func TestParseSupportsAdditionalPropertiesAndLocalReferences(t *testing.T) {
 	}
 	if len(model.Unsupported) != 0 || len(mounts.Unsupported) != 0 {
 		t.Fatalf("supported constructs reported unsupported: root=%v mounts=%v", model.Unsupported, mounts.Unsupported)
+	}
+}
+
+func TestParseSupportsOneOfAndNot(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{
+		"oneOf":[{"type":"string","minLength":1},{"type":"object","additionalProperties":true}],
+		"not":{"required":["user","users"]}
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(model.OneOf) != 2 || model.OneOf[0].Types[0] != "string" || model.OneOf[1].Types[0] != "object" {
+		t.Fatalf("oneOf branches were not parsed: %#v", model.OneOf)
+	}
+	if model.Not == nil || !model.Not.Required["user"] || !model.Not.Required["users"] {
+		t.Fatalf("not schema was not parsed: %#v", model.Not)
+	}
+	if len(model.Unsupported) != 0 {
+		t.Fatalf("supported constructs reported unsupported: %v", model.Unsupported)
+	}
+}
+
+func TestParseRejectsInvalidOneOfAndNot(t *testing.T) {
+	for _, input := range []string{`{"oneOf":[]}`, `{"oneOf":["string"]}`, `{"not":[]}`} {
+		if _, err := jsonschema.Parse([]byte(input)); err == nil {
+			t.Errorf("Parse(%s) accepted invalid schema", input)
+		}
 	}
 }
 

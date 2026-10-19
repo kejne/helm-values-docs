@@ -124,6 +124,34 @@ func parseObject(raw map[string]json.RawMessage, path string, definitions map[st
 			result.Properties[name] = child
 		}
 	}
+	if value, ok := raw["oneOf"]; ok {
+		var branches []json.RawMessage
+		if err := json.Unmarshal(value, &branches); err != nil || len(branches) == 0 {
+			return nil, fmt.Errorf("schema %s: oneOf must be a non-empty array of schemas", path)
+		}
+		for index, branch := range branches {
+			var object map[string]json.RawMessage
+			if err := json.Unmarshal(branch, &object); err != nil || object == nil {
+				return nil, fmt.Errorf("schema %s: oneOf[%d] must be an object", path, index)
+			}
+			parsed, err := parseObject(object, fmt.Sprintf("%s.oneOf[%d]", path, index), definitions)
+			if err != nil {
+				return nil, err
+			}
+			result.OneOf = append(result.OneOf, parsed)
+		}
+	}
+	if value, ok := raw["not"]; ok {
+		var object map[string]json.RawMessage
+		if err := json.Unmarshal(value, &object); err != nil || object == nil {
+			return nil, fmt.Errorf("schema %s: not must be a schema object", path)
+		}
+		parsed, err := parseObject(object, path+".not", definitions)
+		if err != nil {
+			return nil, err
+		}
+		result.Not = parsed
+	}
 	if value, ok := raw["items"]; ok {
 		var object map[string]json.RawMessage
 		if err := json.Unmarshal(value, &object); err != nil || object == nil {
@@ -174,7 +202,7 @@ func isUnsupported(key string) bool {
 	case "$schema", "$id", "$comment", "title", "deprecated", "readOnly", "writeOnly", "definitions", "$ref", "additionalProperties":
 		// Supported keywords are rendered or resolved by the schema adapter.
 		return false
-	case "type", "description", "default", "enum", "examples", "required", "properties", "items",
+	case "type", "description", "default", "enum", "examples", "required", "properties", "items", "oneOf", "not",
 		"minLength", "maxLength", "pattern", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
 		"multipleOf", "minItems", "maxItems", "uniqueItems", "format":
 		return false
