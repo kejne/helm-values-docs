@@ -221,6 +221,28 @@ func TestRenderShowsInferredTypesAndEnumDetails(t *testing.T) {
 	}
 }
 
+func TestRenderListsAllSiblingPropertiesBeforeRenderingDetails(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{"properties":{"httpGateway":{"properties":{"gated":{"type":"boolean"},"private":{"type":"boolean"},"public":{"type":"boolean"}}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := markdown.Render(model, map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	document := string(got)
+	gatedRow := strings.Index(document, "| [gated](#httpgateway_gated)")
+	privateRow := strings.Index(document, "| [private](#httpgateway_private)")
+	publicRow := strings.Index(document, "| [public](#httpgateway_public)")
+	gatedDetails := strings.Index(document, `<a id="httpgateway_gated"></a>`)
+	if gatedRow < 0 || privateRow < 0 || publicRow < 0 || gatedDetails < 0 {
+		t.Fatalf("expected all sibling rows and the gated details section:\n%s", document)
+	}
+	if gatedRow >= privateRow || privateRow >= publicRow || publicRow >= gatedDetails {
+		t.Fatalf("sibling summary rows must precede child detail sections:\n%s", document)
+	}
+}
+
 func TestRenderDescribesOneOfAndNot(t *testing.T) {
 	model, err := jsonschema.Parse([]byte(`{
 		"properties":{

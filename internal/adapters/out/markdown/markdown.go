@@ -157,6 +157,10 @@ func renderProperty(b *strings.Builder, current *domain.Schema, name, path strin
 				b.WriteString("—")
 			}
 			b.WriteString(" |\n")
+		}
+		for _, child := range children {
+			childSchema, childName := childSchema(current, child)
+			childPath := childPath(path, childName)
 			renderProperty(b, childSchema, childName, childPath, value, current.Required[childName], depth+1, notes)
 		}
 	}
