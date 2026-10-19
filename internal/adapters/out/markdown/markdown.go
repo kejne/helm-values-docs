@@ -113,9 +113,9 @@ func renderProperty(b *strings.Builder, current *domain.Schema, name, path strin
 		b.WriteString(" |\n")
 	}
 	if current.Description != "" {
-		b.WriteString("\n**Description:** ")
-		b.WriteString(current.Description)
-		b.WriteString("\n")
+		b.WriteString("| Description | ")
+		b.WriteString(cell(current.Description))
+		b.WriteString(" |\n")
 	}
 	for _, unsupported := range current.Unsupported {
 		*notes = append(*notes, fmt.Sprintf("`%s`: `%s`", path, unsupported))

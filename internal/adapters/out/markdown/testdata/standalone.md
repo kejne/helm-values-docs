@@ -33,8 +33,7 @@
 | Type | `string` |
 | Required | No |
 | Default | `"stable"` |
-
-**Description:** Image | tag
+| Description | Image \| tag |
 
 <a id="missing"></a>
 ## `missing`
@@ -54,5 +53,4 @@
 | Required | Yes |
 | Default | `3` |
 | Constraints | minimum=1 |
-
-**Description:** Number of pods
+| Description | Number of pods |

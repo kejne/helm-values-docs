@@ -33,6 +33,24 @@ func TestRenderGolden(t *testing.T) {
 	assertApproval(t, "standalone.md", got)
 }
 
+func TestRenderIncludesDescriptionInPropertyDetailsTable(t *testing.T) {
+	model, err := jsonschema.Parse([]byte(`{"properties":{"setting":{"type":"string","description":"First line | detail\nSecond line"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := markdown.Render(model, map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	document := string(got)
+	if !containsLine(document, `| Description | First line \| detail<br>Second line |`) {
+		t.Fatalf("description is missing from the property details table:\n%s", document)
+	}
+	if strings.Contains(document, "**Description:**") {
+		t.Fatalf("description was rendered outside the property details table:\n%s", document)
+	}
+}
+
 func TestRenderContentsUsesReadableDynamicMapNames(t *testing.T) {
 	model, err := jsonschema.Parse([]byte(`{"properties":{"apps":{"type":"object","additionalProperties":{"title":"app","type":"object","properties":{"tag":{"type":"string"}}}}}}`))
 	if err != nil {

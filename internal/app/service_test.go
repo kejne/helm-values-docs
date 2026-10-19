@@ -38,7 +38,7 @@ func TestDocumentationLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(document), `**Description:** Enable the feature`) {
+	if !strings.Contains(string(document), `| Description | Enable the feature |`) {
 		t.Fatalf("rendered documentation does not describe the configured value:\n%s", document)
 	}
 
