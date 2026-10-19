@@ -43,7 +43,7 @@ func TestRenderIncludesDescriptionInPropertyDetailsTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	document := string(got)
-	if !containsLine(document, `| Description | First line \| detail<br>Second line |`) {
+	if !containsLine(document, `| Description | First line &#124; detail<br>Second line |`) {
 		t.Fatalf("description is missing from the property details table:\n%s", document)
 	}
 	if strings.Contains(document, "**Description:**") {

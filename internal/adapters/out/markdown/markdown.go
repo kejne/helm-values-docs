@@ -261,7 +261,7 @@ func constraints(current *domain.Schema) string {
 
 func cell(value string) string {
 	value = strings.ReplaceAll(value, "\\", "\\\\")
-	value = strings.ReplaceAll(value, "|", "\\|")
+	value = strings.ReplaceAll(value, "|", "&#124;")
 	value = strings.ReplaceAll(value, "\r\n", "<br>")
 	value = strings.ReplaceAll(value, "\n", "<br>")
 	value = strings.ReplaceAll(value, "\r", "<br>")
