@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kejne/helm-values-docs/internal/domain"
+	"github.com/smedijan/helm-values-docs/internal/domain"
 )
 
 // Loader reads schema files and decodes them into the domain model.

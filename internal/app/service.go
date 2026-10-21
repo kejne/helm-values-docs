@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io/fs"
 
-	inport "github.com/kejne/helm-values-docs/internal/ports/in"
-	outport "github.com/kejne/helm-values-docs/internal/ports/out"
+	inport "github.com/smedijan/helm-values-docs/internal/ports/in"
+	outport "github.com/smedijan/helm-values-docs/internal/ports/out"
 )
 
 // Service coordinates domain operations through outbound ports.

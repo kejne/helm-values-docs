@@ -1,8 +1,8 @@
 package markdown_test
 
 import (
-	"github.com/kejne/helm-values-docs/internal/adapters/out/jsonschema"
-	"github.com/kejne/helm-values-docs/internal/adapters/out/markdown"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/jsonschema"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/markdown"
 	"os"
 	"path/filepath"
 	"reflect"

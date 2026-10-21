@@ -1,7 +1,7 @@
 // Package out defines interfaces required by the application from adapters.
 package out
 
-import "github.com/kejne/helm-values-docs/internal/domain"
+import "github.com/smedijan/helm-values-docs/internal/domain"
 
 // SchemaLoader reads and decodes a schema document.
 type SchemaLoader interface {

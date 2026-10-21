@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kejne/helm-values-docs/internal/domain"
+	"github.com/smedijan/helm-values-docs/internal/domain"
 )
 
 // Parse decodes a JSON Schema document.

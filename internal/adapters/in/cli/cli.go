@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	inport "github.com/kejne/helm-values-docs/internal/ports/in"
+	inport "github.com/smedijan/helm-values-docs/internal/ports/in"
 )
 
 type stringList []string
@@ -35,7 +35,7 @@ func Run(args []string, stdout, stderr io.Writer, service inport.Documentation) 
 	case "check":
 		return check(args[1:], stderr, service)
 	default:
-		_, _ = fmt.Fprintf(stderr, "helm-values-docs: unknown command %q\n", args[0])
+		_, _ = fmt.Fprintf(stderr, "hvd: unknown command %q\n", args[0])
 		usage(stderr)
 		return 2
 	}
@@ -98,5 +98,5 @@ func parseFlags(name string, args []string, stderr io.Writer) (inport.Request, b
 }
 
 func usage(stderr io.Writer) {
-	_, _ = fmt.Fprintln(stderr, "usage: helm-values-docs {render|check} --schema SCHEMA --values VALUES [--values VALUES ...] --output OUTPUT")
+	_, _ = fmt.Fprintln(stderr, "usage: hvd {render|check} --schema SCHEMA --values VALUES [--values VALUES ...] --output OUTPUT")
 }

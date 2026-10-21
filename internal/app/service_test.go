@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kejne/helm-values-docs/internal/adapters/out/filesystem"
-	"github.com/kejne/helm-values-docs/internal/adapters/out/jsonschema"
-	"github.com/kejne/helm-values-docs/internal/adapters/out/markdown"
-	"github.com/kejne/helm-values-docs/internal/adapters/out/yamlvalues"
-	"github.com/kejne/helm-values-docs/internal/app"
-	inport "github.com/kejne/helm-values-docs/internal/ports/in"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/filesystem"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/jsonschema"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/markdown"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/yamlvalues"
+	"github.com/smedijan/helm-values-docs/internal/app"
+	inport "github.com/smedijan/helm-values-docs/internal/ports/in"
 )
 
 func TestDocumentationLifecycle(t *testing.T) {

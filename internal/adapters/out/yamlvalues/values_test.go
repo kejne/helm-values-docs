@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kejne/helm-values-docs/internal/adapters/out/yamlvalues"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/yamlvalues"
 )
 
 func TestLoadValuesMergesInOrder(t *testing.T) {

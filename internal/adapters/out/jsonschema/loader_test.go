@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kejne/helm-values-docs/internal/adapters/out/jsonschema"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/jsonschema"
 )
 
 func TestLoaderReadsAndDecodesSchema(t *testing.T) {

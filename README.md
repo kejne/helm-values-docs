@@ -12,7 +12,7 @@ object/property subset used by Helm values schemas.
 ## Render Markdown
 
 ```sh
-helm-values-docs render \
+hvd render \
   --schema values.schema.json \
   --values values.yaml \
   --values values-production.yaml \
@@ -37,7 +37,7 @@ in memory and atomically replaced after successful rendering.
 Use the same inputs with `check` in CI:
 
 ```sh
-helm-values-docs check \
+hvd check \
   --schema values.schema.json \
   --values values.yaml \
   --values values-production.yaml \
@@ -78,7 +78,7 @@ schema model; `internal/ports/in` defines use cases and `internal/ports/out`
 defines the application's adapter interfaces. `internal/app` coordinates those
 ports. CLI, JSON Schema, YAML, Markdown, and filesystem implementations live in
 `internal/adapters/in` or `internal/adapters/out`. The executable is the
-composition root in `cmd/helm-values-docs`.
+composition root in `cmd/hvd`.
 
 `.go-arch-lint.yml` describes and enforces the allowed import direction. Run
 `go-arch-lint check` to validate it; `hk check` runs it alongside the Go checks.

@@ -3,7 +3,7 @@ package domain_test
 import (
 	"testing"
 
-	"github.com/kejne/helm-values-docs/internal/domain"
+	"github.com/smedijan/helm-values-docs/internal/domain"
 )
 
 func TestPropertyNamesAreCanonical(t *testing.T) {

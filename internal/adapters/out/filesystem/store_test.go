@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kejne/helm-values-docs/internal/adapters/out/filesystem"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/filesystem"
 )
 
 func TestStorePersistsAndReadsGeneratedDocument(t *testing.T) {

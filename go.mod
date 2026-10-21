@@ -1,4 +1,4 @@
-module github.com/kejne/helm-values-docs
+module github.com/smedijan/helm-values-docs
 
 go 1.26.6
 

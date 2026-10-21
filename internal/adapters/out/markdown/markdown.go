@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kejne/helm-values-docs/internal/domain"
+	"github.com/smedijan/helm-values-docs/internal/domain"
 )
 
 // Render produces deterministic Markdown for a schema and effective values.

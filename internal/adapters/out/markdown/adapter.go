@@ -1,6 +1,6 @@
 package markdown
 
-import "github.com/kejne/helm-values-docs/internal/domain"
+import "github.com/smedijan/helm-values-docs/internal/domain"
 
 // Adapter exposes the Markdown renderer through the outbound port.
 type Adapter struct{}

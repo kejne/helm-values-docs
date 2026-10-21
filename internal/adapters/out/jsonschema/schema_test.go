@@ -3,7 +3,7 @@ package jsonschema_test
 import (
 	"testing"
 
-	"github.com/kejne/helm-values-docs/internal/adapters/out/jsonschema"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/jsonschema"
 )
 
 func TestParseSchema(t *testing.T) {

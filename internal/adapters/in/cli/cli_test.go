@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kejne/helm-values-docs/internal/adapters/in/cli"
-	"github.com/kejne/helm-values-docs/internal/adapters/out/filesystem"
-	"github.com/kejne/helm-values-docs/internal/adapters/out/jsonschema"
-	"github.com/kejne/helm-values-docs/internal/adapters/out/markdown"
-	"github.com/kejne/helm-values-docs/internal/adapters/out/yamlvalues"
-	"github.com/kejne/helm-values-docs/internal/app"
+	"github.com/smedijan/helm-values-docs/internal/adapters/in/cli"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/filesystem"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/jsonschema"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/markdown"
+	"github.com/smedijan/helm-values-docs/internal/adapters/out/yamlvalues"
+	"github.com/smedijan/helm-values-docs/internal/app"
 )
 
 func TestRenderCommand(t *testing.T) {

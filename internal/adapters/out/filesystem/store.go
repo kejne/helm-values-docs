@@ -20,7 +20,7 @@ func (Store) Read(path string) ([]byte, error) {
 
 func (Store) WriteAtomic(path string, data []byte) error {
 	dir := filepath.Dir(path)
-	file, err := os.CreateTemp(dir, ".helm-values-docs-*")
+	file, err := os.CreateTemp(dir, ".hvd-*")
 	if err != nil {
 		return fmt.Errorf("create temporary output for %q: %w", path, err)
 	}
